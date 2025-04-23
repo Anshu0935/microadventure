@@ -13,7 +13,7 @@ const UserStats = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Star className="w-5 h-5 text-adventure-gold" />
-            <span className="font-medium">Score</span>
+            <span className="font-medium text-white">Score</span>
           </div>
           <Badge variant="secondary" className="bg-adventure-gold/10 text-adventure-gold">
             {gameState.score} pts
@@ -23,7 +23,7 @@ const UserStats = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Map className="w-5 h-5 text-adventure-primary" />
-            <span className="font-medium">Treasures</span>
+            <span className="font-medium text-white">Treasures</span>
           </div>
           <Badge variant="secondary" className="bg-adventure-primary/10 text-adventure-primary">
             {gameState.treasuresFound} found
@@ -33,7 +33,7 @@ const UserStats = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Award className="w-5 h-5 text-adventure-secondary" />
-            <span className="font-medium">Obstacles</span>
+            <span className="font-medium text-white">Obstacles</span>
           </div>
           <Badge variant="secondary" className="bg-adventure-secondary/10 text-adventure-secondary">
             {gameState.obstaclesCleared} cleared

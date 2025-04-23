@@ -3,8 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import { Badge } from '@/components/ui/badge';
 import { calculateDistance } from '@/utils/gameUtils';
-import { Compass, Navigation, UserRound } from 'lucide-react';
-import { Button } from './ui/button';
+import { Compass, Navigation } from 'lucide-react';
 import ProfileDrawer from './ProfileDrawer';
 import UserStats from './UserStats';
 
@@ -62,14 +61,12 @@ const MapView = () => {
         };
         
         treasureEl.innerHTML = `
-          <div class="relative">
-            <div class="w-5 h-5 rounded-full ${rarityColors[treasure.rarity]} flex items-center justify-center">
-              <span class="text-xs text-white">T</span>
+          <div class="relative group">
+            <div class="w-10 h-10 rounded-full ${rarityColors[treasure.rarity]} flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110">
+              <img src="/placeholder.svg" alt="treasure" class="w-6 h-6" />
             </div>
-            <div class="absolute -bottom-1 left-5 whitespace-nowrap">
-              <span class="text-xs font-medium px-1 py-0.5 rounded ${
-                treasure.found ? 'bg-slate-200 text-slate-600' : 'bg-amber-100 text-amber-800'
-              }">
+            <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+              <span class="text-xs font-medium px-1.5 py-0.5 rounded bg-black/70 text-white">
                 ${Math.round(distance)}m
               </span>
             </div>
@@ -108,14 +105,12 @@ const MapView = () => {
         };
         
         obstacleEl.innerHTML = `
-          <div class="relative">
-            <div class="w-5 h-5 rounded-full ${difficultyColors[obstacle.difficulty]} flex items-center justify-center">
-              <span class="text-xs text-white">O</span>
+          <div class="relative group">
+            <div class="w-10 h-10 rounded-full ${difficultyColors[obstacle.difficulty]} flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110">
+              <img src="/placeholder.svg" alt="obstacle" class="w-6 h-6 invert" />
             </div>
-            <div class="absolute -bottom-1 left-5 whitespace-nowrap">
-              <span class="text-xs font-medium px-1 py-0.5 rounded ${
-                obstacle.completed ? 'bg-slate-200 text-slate-600' : 'bg-rose-100 text-rose-800'
-              }">
+            <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+              <span class="text-xs font-medium px-1.5 py-0.5 rounded bg-black/70 text-white">
                 ${Math.round(distance)}m
               </span>
             </div>
@@ -139,16 +134,18 @@ const MapView = () => {
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
-      {/* Dark themed map container */}
+      {/* Dark themed map container similar to Pokémon GO */}
       <div className="absolute inset-0 bg-[#1A1F2C]">
         <div ref={mapRef} className="absolute inset-0">
           {/* Map grid pattern for background */}
           <div className="absolute inset-0" style={{
             backgroundImage: `
-              linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)
+              linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px),
+              linear-gradient(to right, rgba(255,255,255,0.08) 4px, transparent 4px),
+              linear-gradient(to bottom, rgba(255,255,255,0.08) 4px, transparent 4px)
             `,
-            backgroundSize: '20px 20px',
+            backgroundSize: '20px 20px, 20px 20px, 100px 100px, 100px 100px',
             opacity: 0.3
           }} />
 
@@ -158,21 +155,29 @@ const MapView = () => {
               {/* Treasures and obstacles will be rendered here */}
             </div>
             
-            {/* User location marker */}
+            {/* User location marker - styled like Pokémon GO player */}
             <div 
               ref={userMarkerRef}
-              className="relative"
+              className="relative z-20"
             >
-              <div className="w-6 h-6 bg-adventure-primary rounded-full border-2 border-white shadow-lg z-10">
-                <div className="w-full h-full animate-ping bg-adventure-primary opacity-30 rounded-full" />
+              {/* Outer ring animation */}
+              <div className="absolute -inset-4 rounded-full bg-adventure-primary/10 animate-pulse"></div>
+              {/* Pulsing circle */}
+              <div className="absolute -inset-2 rounded-full bg-adventure-primary/20 animate-ping"></div>
+              {/* Player avatar */}
+              <div className="relative w-8 h-8 bg-white rounded-full border-4 border-adventure-primary shadow-lg z-10">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="block w-2 h-2 bg-adventure-primary rounded-full"></span>
+                </div>
               </div>
-              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-0 h-0 
-                border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent 
-                border-t-adventure-primary shadow-md" />
+              {/* Direction indicator - similar to Pokémon GO */}
+              <div className="absolute w-20 h-20 -inset-6 flex items-center justify-center opacity-60">
+                <div className="w-full h-full rounded-full border-4 border-transparent border-t-adventure-primary"></div>
+              </div>
             </div>
           </div>
           
-          {/* Compass rose */}
+          {/* Compass rose - styled like Pokémon GO compass */}
           <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-sm p-2 rounded-lg shadow-md border border-white/10">
             <Navigation className="h-6 w-6 text-white" />
           </div>

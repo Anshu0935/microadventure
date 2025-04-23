@@ -52,9 +52,20 @@ const ProfileDrawer = () => {
       </DrawerTrigger>
       <DrawerContent className="bg-[#1A1F2C] border-t border-white/10">
         <DrawerHeader>
-          <DrawerTitle className="text-white text-center">Player Profile</DrawerTitle>
+          <DrawerTitle className="text-white text-center">Trainer Profile</DrawerTitle>
         </DrawerHeader>
         <div className="p-4 space-y-4">
+          {/* Player avatar and level */}
+          <div className="flex flex-col items-center mb-4">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-adventure-primary to-adventure-secondary flex items-center justify-center mb-2">
+              <UserRound className="h-10 w-10 text-white" />
+            </div>
+            <h3 className="text-white font-bold text-lg">Adventure Trainer</h3>
+            <div className="flex items-center gap-2">
+              <Badge className="bg-adventure-gold text-black">Level {Math.max(1, Math.floor(gameState.score / 100))}</Badge>
+            </div>
+          </div>
+          
           {achievements.map((achievement, index) => (
             <Card
               key={index}

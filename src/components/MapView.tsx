@@ -4,6 +4,7 @@ import { useGame } from '@/contexts/GameContext';
 import { Badge } from '@/components/ui/badge';
 import { calculateDistance } from '@/utils/gameUtils';
 import { Compass, Navigation } from 'lucide-react';
+import UserStats from './UserStats';
 
 const MapView = () => {
   const { userLocation, treasures, obstacles, selectTreasure, selectObstacle } = useGame();
@@ -14,8 +15,6 @@ const MapView = () => {
   // Update map view when user location changes
   useEffect(() => {
     if (!userLocation) return;
-    
-    // Update map items positions relative to user
     updateMapItems();
   }, [userLocation, treasures, obstacles]);
 
@@ -137,36 +136,47 @@ const MapView = () => {
   }
 
   return (
-    <div className="relative w-full max-w-md aspect-square mx-auto my-4 rounded-full overflow-hidden border-4 border-adventure-primary bg-slate-100 treasure-map">
-      <div ref={mapRef} className="absolute inset-0">
-        {/* Map rendering area */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div ref={mapItemsRef} className="absolute inset-0">
-            {/* Treasures and obstacles will be dynamically rendered here */}
+    <div className="relative w-full aspect-square max-w-4xl mx-auto my-4">
+      {/* Main map container with Google Maps-like styling */}
+      <div className="absolute inset-0 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+        <div ref={mapRef} className="absolute inset-0 bg-[#f8f9fa]">
+          {/* Map grid pattern for background */}
+          <div className="absolute inset-0" style={{
+            backgroundImage: `
+              linear-gradient(to right, #e5e7eb 1px, transparent 1px),
+              linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
+            `,
+            backgroundSize: '20px 20px',
+            opacity: 0.3
+          }} />
+
+          {/* Map content area */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div ref={mapItemsRef} className="absolute inset-0">
+              {/* Treasures and obstacles will be rendered here */}
+            </div>
+            
+            {/* User location marker */}
+            <div 
+              ref={userMarkerRef}
+              className="relative"
+            >
+              <div className="w-6 h-6 bg-adventure-primary rounded-full border-2 border-white shadow-lg z-10">
+                <div className="w-full h-full animate-ping bg-adventure-primary opacity-30 rounded-full" />
+              </div>
+              <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-0 h-0 
+                border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent 
+                border-t-adventure-primary shadow-md" />
+            </div>
           </div>
           
-          {/* User location marker */}
-          <div 
-            ref={userMarkerRef} 
-            className="w-6 h-6 bg-adventure-primary rounded-full border-2 border-white shadow-lg z-10"
-          >
-            <div className="w-full h-full animate-ping bg-adventure-primary opacity-30 rounded-full"></div>
+          {/* Compass rose */}
+          <div className="absolute top-4 left-4 bg-white/90 p-2 rounded-lg shadow-md">
+            <Navigation className="h-6 w-6 text-adventure-secondary" />
           </div>
-        </div>
-        
-        {/* Compass rose */}
-        <div className="absolute top-4 left-4">
-          <Navigation className="h-8 w-8 text-adventure-secondary" />
-        </div>
-        
-        {/* Map info */}
-        <div className="absolute bottom-4 right-4 flex space-x-2">
-          <Badge variant="secondary" className="bg-amber-100 text-amber-800 border-none">
-            {treasures.filter(t => !t.found).length} Treasures
-          </Badge>
-          <Badge variant="secondary" className="bg-rose-100 text-rose-800 border-none">
-            {obstacles.filter(o => !o.completed).length} Obstacles
-          </Badge>
+
+          {/* User Stats Component */}
+          <UserStats />
         </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,16 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				adventure: {
+					primary: '#8B5CF6',      // Purple
+					secondary: '#7E69AB',    // Darker purple
+					gold: '#F59E0B',         // Gold for treasure
+					earth: '#78350F',        // Earth brown
+					forest: '#064E3B',       // Dark green
+					background: '#F8FAFC',   // Light background
+					danger: '#DC2626',       // Danger red
+					success: '#10B981',      // Success green
 				}
 			},
 			borderRadius: {
@@ -84,11 +95,26 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'pulse-gold': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.6' }
+				},
+				'float': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-10px)' }
+				},
+				'rotate': {
+					'0%': { transform: 'rotate(0deg)' },
+					'100%': { transform: 'rotate(360deg)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-gold': 'pulse-gold 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+				'float': 'float 3s ease-in-out infinite',
+				'rotate': 'rotate 8s linear infinite'
 			}
 		}
 	},

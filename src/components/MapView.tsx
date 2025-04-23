@@ -3,7 +3,9 @@ import React, { useEffect, useRef } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import { Badge } from '@/components/ui/badge';
 import { calculateDistance } from '@/utils/gameUtils';
-import { Compass, Navigation } from 'lucide-react';
+import { Compass, Navigation, UserRound } from 'lucide-react';
+import { Button } from './ui/button';
+import ProfileDrawer from './ProfileDrawer';
 import UserStats from './UserStats';
 
 const MapView = () => {
@@ -128,23 +130,23 @@ const MapView = () => {
 
   if (!userLocation) {
     return (
-      <div className="flex flex-col items-center justify-center h-64">
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-900">
         <Compass className="h-12 w-12 text-adventure-primary animate-pulse" />
-        <p className="text-lg font-medium mt-4">Waiting for your location...</p>
+        <p className="text-lg font-medium mt-4 text-white">Waiting for your location...</p>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full aspect-square max-w-4xl mx-auto my-4">
-      {/* Main map container with Google Maps-like styling */}
-      <div className="absolute inset-0 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
-        <div ref={mapRef} className="absolute inset-0 bg-[#f8f9fa]">
+    <div className="relative w-full h-screen overflow-hidden">
+      {/* Dark themed map container */}
+      <div className="absolute inset-0 bg-[#1A1F2C]">
+        <div ref={mapRef} className="absolute inset-0">
           {/* Map grid pattern for background */}
           <div className="absolute inset-0" style={{
             backgroundImage: `
-              linear-gradient(to right, #e5e7eb 1px, transparent 1px),
-              linear-gradient(to bottom, #e5e7eb 1px, transparent 1px)
+              linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px)
             `,
             backgroundSize: '20px 20px',
             opacity: 0.3
@@ -171,9 +173,12 @@ const MapView = () => {
           </div>
           
           {/* Compass rose */}
-          <div className="absolute top-4 left-4 bg-white/90 p-2 rounded-lg shadow-md">
-            <Navigation className="h-6 w-6 text-adventure-secondary" />
+          <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-sm p-2 rounded-lg shadow-md border border-white/10">
+            <Navigation className="h-6 w-6 text-white" />
           </div>
+
+          {/* Profile Button */}
+          <ProfileDrawer />
 
           {/* User Stats Component */}
           <UserStats />

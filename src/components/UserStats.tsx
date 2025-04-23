@@ -8,7 +8,7 @@ const UserStats = () => {
   const { gameState } = useGame();
 
   return (
-    <Card className="absolute top-4 right-4 p-4 bg-white/90 backdrop-blur-sm z-10 w-64 shadow-lg">
+    <Card className="absolute top-4 right-16 p-4 bg-black/40 backdrop-blur-sm border border-white/10 z-10 w-64 shadow-lg">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

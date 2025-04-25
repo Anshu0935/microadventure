@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import { GoogleMap, useLoadScript } from '@react-google-maps/api';
 import { calculateDistance } from '@/utils/gameUtils';
@@ -7,16 +7,19 @@ import { Compass } from 'lucide-react';
 import ProfileDrawer from './ProfileDrawer';
 import UserStats from './UserStats';
 
+// Define libraries array outside component to prevent recreation on each render
+const mapLibraries = ['places'];
+
 const MapView = () => {
   const { userLocation, treasures, obstacles, selectTreasure, selectObstacle } = useGame();
   const [map, setMap] = useState<google.maps.Map | null>(null);
 
   const { isLoaded } = useLoadScript({
-    googleMapsApiKey: "YOUR_GOOGLE_MAPS_API_KEY", // This is a publishable key, it's ok to be in the code
-    libraries: ['places'],
+    googleMapsApiKey: "AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg", // This is a Google sample API key
+    libraries: mapLibraries,
   });
 
-  const mapOptions: google.maps.MapOptions = {
+  const mapOptions = useMemo<google.maps.MapOptions>(() => ({
     disableDefaultUI: true,
     styles: [
       {
@@ -65,7 +68,7 @@ const MapView = () => {
         stylers: [{ color: '#2f3948' }],
       },
     ],
-  };
+  }), []);
 
   useEffect(() => {
     if (!userLocation || !map) return;
@@ -146,7 +149,7 @@ const MapView = () => {
     // Animate pulse
     let opacity = 0.3;
     let expanding = true;
-    setInterval(() => {
+    const pulseInterval = setInterval(() => {
       if (expanding) {
         opacity -= 0.01;
         if (opacity <= 0.1) expanding = false;
@@ -157,7 +160,11 @@ const MapView = () => {
       pulseCircle.setOptions({ fillOpacity: opacity });
     }, 50);
 
-  }, [userLocation, map, treasures, obstacles]);
+    // Clean up interval when component unmounts
+    return () => {
+      clearInterval(pulseInterval);
+    };
+  }, [userLocation, map, treasures, obstacles, selectTreasure, selectObstacle]);
 
   if (!isLoaded) {
     return (

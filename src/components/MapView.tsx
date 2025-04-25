@@ -1,194 +1,188 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useGame } from '@/contexts/GameContext';
-import { Badge } from '@/components/ui/badge';
+import { GoogleMap, useLoadScript } from '@react-google-maps/api';
 import { calculateDistance } from '@/utils/gameUtils';
-import { Compass, Navigation } from 'lucide-react';
+import { Compass } from 'lucide-react';
 import ProfileDrawer from './ProfileDrawer';
 import UserStats from './UserStats';
 
 const MapView = () => {
   const { userLocation, treasures, obstacles, selectTreasure, selectObstacle } = useGame();
-  const mapRef = useRef<HTMLDivElement>(null);
-  const userMarkerRef = useRef<HTMLDivElement>(null);
-  const mapItemsRef = useRef<HTMLDivElement>(null);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
 
-  // Update map view when user location changes
-  useEffect(() => {
-    if (!userLocation) return;
-    updateMapItems();
-  }, [userLocation, treasures, obstacles]);
+  const { isLoaded } = useLoadScript({
+    googleMapsApiKey: "YOUR_GOOGLE_MAPS_API_KEY", // This is a publishable key, it's ok to be in the code
+    libraries: ['places'],
+  });
 
-  const updateMapItems = () => {
-    if (!userLocation || !mapRef.current || !mapItemsRef.current) return;
-    
-    // Clear previous items
-    mapItemsRef.current.innerHTML = '';
-    
-    // Map dimensions
-    const mapSize = Math.min(window.innerWidth, window.innerHeight) * 0.8;
-    const mapScale = 2.5; // 1px = 2.5 meters
-    const maxRenderDistance = mapSize / 2 / mapScale;
-    
-    // Add treasures
-    treasures.forEach(treasure => {
-      const distance = calculateDistance(userLocation, treasure);
-      
-      // Only render items within visible range
-      if (distance <= maxRenderDistance) {
-        const angle = Math.atan2(
-          treasure.lat - userLocation.lat,
-          treasure.lng - userLocation.lng
-        );
-        
-        // Calculate position on map (in pixels)
-        const x = Math.cos(angle) * (distance / mapScale);
-        const y = Math.sin(angle) * (distance / mapScale);
-        
-        const treasureEl = document.createElement('div');
-        treasureEl.className = `absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer ${
-          treasure.found ? 'opacity-50' : 'animate-pulse-gold'
-        }`;
-        treasureEl.style.left = `calc(50% + ${x}px)`;
-        treasureEl.style.top = `calc(50% + ${y}px)`;
-        
-        const rarityColors: Record<string, string> = {
-          common: 'bg-slate-400',
-          uncommon: 'bg-emerald-400',
-          rare: 'bg-blue-400',
-          epic: 'bg-purple-500',
-          legendary: 'bg-amber-400'
-        };
-        
-        treasureEl.innerHTML = `
-          <div class="relative group">
-            <div class="w-10 h-10 rounded-full ${rarityColors[treasure.rarity]} flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110">
-              <img src="/placeholder.svg" alt="treasure" class="w-6 h-6" />
-            </div>
-            <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-              <span class="text-xs font-medium px-1.5 py-0.5 rounded bg-black/70 text-white">
-                ${Math.round(distance)}m
-              </span>
-            </div>
-          </div>
-        `;
-        
-        treasureEl.addEventListener('click', () => selectTreasure(treasure.id));
-        mapItemsRef.current?.appendChild(treasureEl);
-      }
-    });
-    
-    // Add obstacles
-    obstacles.forEach(obstacle => {
-      const distance = calculateDistance(userLocation, obstacle);
-      
-      if (distance <= maxRenderDistance) {
-        const angle = Math.atan2(
-          obstacle.lat - userLocation.lat,
-          obstacle.lng - userLocation.lng
-        );
-        
-        const x = Math.cos(angle) * (distance / mapScale);
-        const y = Math.sin(angle) * (distance / mapScale);
-        
-        const obstacleEl = document.createElement('div');
-        obstacleEl.className = `absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer ${
-          obstacle.completed ? 'opacity-50' : ''
-        }`;
-        obstacleEl.style.left = `calc(50% + ${x}px)`;
-        obstacleEl.style.top = `calc(50% + ${y}px)`;
-        
-        const difficultyColors: Record<string, string> = {
-          easy: 'bg-green-500',
-          medium: 'bg-yellow-500',
-          hard: 'bg-red-500'
-        };
-        
-        obstacleEl.innerHTML = `
-          <div class="relative group">
-            <div class="w-10 h-10 rounded-full ${difficultyColors[obstacle.difficulty]} flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-110">
-              <img src="/placeholder.svg" alt="obstacle" class="w-6 h-6 invert" />
-            </div>
-            <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-              <span class="text-xs font-medium px-1.5 py-0.5 rounded bg-black/70 text-white">
-                ${Math.round(distance)}m
-              </span>
-            </div>
-          </div>
-        `;
-        
-        obstacleEl.addEventListener('click', () => selectObstacle(obstacle.id));
-        mapItemsRef.current?.appendChild(obstacleEl);
-      }
-    });
+  const mapOptions: google.maps.MapOptions = {
+    disableDefaultUI: true,
+    styles: [
+      {
+        featureType: 'all',
+        elementType: 'labels.text.fill',
+        stylers: [{ color: '#ffffff' }],
+      },
+      {
+        featureType: 'all',
+        elementType: 'labels.text.stroke',
+        stylers: [{ color: '#000000' }, { lightness: 13 }],
+      },
+      {
+        featureType: 'water',
+        elementType: 'geometry',
+        stylers: [{ color: '#022338' }],
+      },
+      {
+        featureType: 'landscape',
+        elementType: 'geometry',
+        stylers: [{ color: '#1A1F2C' }],
+      },
+      {
+        featureType: 'road',
+        elementType: 'geometry.fill',
+        stylers: [{ color: '#2c2c2c' }],
+      },
+      {
+        featureType: 'road',
+        elementType: 'geometry.stroke',
+        stylers: [{ color: '#000000' }, { lightness: 25 }],
+      },
+      {
+        featureType: 'road.highway',
+        elementType: 'geometry.fill',
+        stylers: [{ color: '#000000' }, { lightness: 17 }],
+      },
+      {
+        featureType: 'poi',
+        elementType: 'geometry',
+        stylers: [{ color: '#283747' }],
+      },
+      {
+        featureType: 'transit',
+        elementType: 'geometry',
+        stylers: [{ color: '#2f3948' }],
+      },
+    ],
   };
 
-  if (!userLocation) {
+  useEffect(() => {
+    if (!userLocation || !map) return;
+
+    // Center map on user location
+    map.panTo({ lat: userLocation.lat, lng: userLocation.lng });
+
+    // Clear existing markers
+    map.overlayMapTypes.clear();
+
+    // Add custom markers for treasures and obstacles
+    treasures.forEach(treasure => {
+      const distance = calculateDistance(userLocation, treasure);
+      if (distance <= 500) { // Only show items within 500m
+        const marker = new google.maps.Marker({
+          position: { lat: treasure.lat, lng: treasure.lng },
+          map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: treasure.found ? '#666666' : '#F59E0B',
+            fillOpacity: 0.8,
+            strokeWeight: 2,
+            strokeColor: '#FFFFFF',
+          },
+          title: `Treasure (${Math.round(distance)}m away)`,
+        });
+
+        marker.addListener('click', () => selectTreasure(treasure.id));
+      }
+    });
+
+    obstacles.forEach(obstacle => {
+      const distance = calculateDistance(userLocation, obstacle);
+      if (distance <= 500) { // Only show items within 500m
+        const marker = new google.maps.Marker({
+          position: { lat: obstacle.lat, lng: obstacle.lng },
+          map,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 10,
+            fillColor: obstacle.completed ? '#666666' : '#DC2626',
+            fillOpacity: 0.8,
+            strokeWeight: 2,
+            strokeColor: '#FFFFFF',
+          },
+          title: `Obstacle (${Math.round(distance)}m away)`,
+        });
+
+        marker.addListener('click', () => selectObstacle(obstacle.id));
+      }
+    });
+
+    // Add player marker with pulse effect
+    const playerMarker = new google.maps.Marker({
+      position: { lat: userLocation.lat, lng: userLocation.lng },
+      map,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 12,
+        fillColor: '#8B5CF6',
+        fillOpacity: 0.8,
+        strokeWeight: 3,
+        strokeColor: '#FFFFFF',
+      },
+    });
+
+    // Create pulse circle
+    const pulseCircle = new google.maps.Circle({
+      map,
+      center: { lat: userLocation.lat, lng: userLocation.lng },
+      radius: 20,
+      fillColor: '#8B5CF6',
+      fillOpacity: 0.3,
+      strokeWeight: 0,
+    });
+
+    // Animate pulse
+    let opacity = 0.3;
+    let expanding = true;
+    setInterval(() => {
+      if (expanding) {
+        opacity -= 0.01;
+        if (opacity <= 0.1) expanding = false;
+      } else {
+        opacity += 0.01;
+        if (opacity >= 0.3) expanding = true;
+      }
+      pulseCircle.setOptions({ fillOpacity: opacity });
+    }, 50);
+
+  }, [userLocation, map, treasures, obstacles]);
+
+  if (!isLoaded) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-900">
+      <div className="flex flex-col items-center justify-center h-screen bg-[#1A1F2C]">
         <Compass className="h-12 w-12 text-adventure-primary animate-pulse" />
-        <p className="text-lg font-medium mt-4 text-white">Waiting for your location...</p>
+        <p className="text-lg font-medium mt-4 text-white">Loading map...</p>
       </div>
     );
   }
 
   return (
     <div className="relative w-full h-screen overflow-hidden">
-      {/* Dark themed map container similar to Pokémon GO */}
-      <div className="absolute inset-0 bg-[#1A1F2C]">
-        <div ref={mapRef} className="absolute inset-0">
-          {/* Map grid pattern for background */}
-          <div className="absolute inset-0" style={{
-            backgroundImage: `
-              linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px),
-              linear-gradient(to right, rgba(255,255,255,0.08) 4px, transparent 4px),
-              linear-gradient(to bottom, rgba(255,255,255,0.08) 4px, transparent 4px)
-            `,
-            backgroundSize: '20px 20px, 20px 20px, 100px 100px, 100px 100px',
-            opacity: 0.3
-          }} />
+      <GoogleMap
+        mapContainerClassName="w-full h-full"
+        center={userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : { lat: 0, lng: 0 }}
+        zoom={18}
+        options={mapOptions}
+        onLoad={map => setMap(map)}
+      />
 
-          {/* Map content area */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div ref={mapItemsRef} className="absolute inset-0">
-              {/* Treasures and obstacles will be rendered here */}
-            </div>
-            
-            {/* User location marker - styled like Pokémon GO player */}
-            <div 
-              ref={userMarkerRef}
-              className="relative z-20"
-            >
-              {/* Outer ring animation */}
-              <div className="absolute -inset-4 rounded-full bg-adventure-primary/10 animate-pulse"></div>
-              {/* Pulsing circle */}
-              <div className="absolute -inset-2 rounded-full bg-adventure-primary/20 animate-ping"></div>
-              {/* Player avatar */}
-              <div className="relative w-8 h-8 bg-white rounded-full border-4 border-adventure-primary shadow-lg z-10">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="block w-2 h-2 bg-adventure-primary rounded-full"></span>
-                </div>
-              </div>
-              {/* Direction indicator - similar to Pokémon GO */}
-              <div className="absolute w-20 h-20 -inset-6 flex items-center justify-center opacity-60">
-                <div className="w-full h-full rounded-full border-4 border-transparent border-t-adventure-primary"></div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Compass rose - styled like Pokémon GO compass */}
-          <div className="absolute top-4 left-4 bg-black/40 backdrop-blur-sm p-2 rounded-lg shadow-md border border-white/10">
-            <Navigation className="h-6 w-6 text-white" />
-          </div>
+      {/* Profile Button */}
+      <ProfileDrawer />
 
-          {/* Profile Button */}
-          <ProfileDrawer />
-
-          {/* User Stats Component */}
-          <UserStats />
-        </div>
-      </div>
+      {/* User Stats Component */}
+      <UserStats />
     </div>
   );
 };

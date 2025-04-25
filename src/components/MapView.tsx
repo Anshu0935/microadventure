@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import { GoogleMap, useLoadScript } from '@react-google-maps/api';
@@ -7,82 +6,85 @@ import { Compass } from 'lucide-react';
 import ProfileDrawer from './ProfileDrawer';
 import UserStats from './UserStats';
 
-// Define libraries array outside component to prevent recreation on each render
-const mapLibraries = ['places'];
+const libraries: ("places" | "drawing" | "geometry" | "localContext" | "visualization")[] = ["places"];
 
 const MapView = () => {
   const { userLocation, treasures, obstacles, selectTreasure, selectObstacle } = useGame();
   const [map, setMap] = useState<google.maps.Map | null>(null);
 
   const { isLoaded } = useLoadScript({
-    googleMapsApiKey: "AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg", // This is a Google sample API key
-    libraries: mapLibraries,
+    googleMapsApiKey: "AIzaSyB41DRUbKWJHPxaFjMAwdrzWzbVKartNGg",
+    libraries: libraries
   });
 
   const mapOptions = useMemo<google.maps.MapOptions>(() => ({
-    disableDefaultUI: true,
+    disableDefaultUI: false,
     styles: [
       {
-        featureType: 'all',
-        elementType: 'labels.text.fill',
-        stylers: [{ color: '#ffffff' }],
+        featureType: "poi",
+        elementType: "labels",
+        stylers: [{ visibility: "on" }],
       },
       {
-        featureType: 'all',
-        elementType: 'labels.text.stroke',
-        stylers: [{ color: '#000000' }, { lightness: 13 }],
+        featureType: "road",
+        elementType: "labels",
+        stylers: [{ visibility: "on" }],
       },
       {
-        featureType: 'water',
-        elementType: 'geometry',
-        stylers: [{ color: '#022338' }],
+        featureType: "landscape",
+        stylers: [{ color: "#f5f5f5" }],
       },
       {
-        featureType: 'landscape',
-        elementType: 'geometry',
-        stylers: [{ color: '#1A1F2C' }],
+        featureType: "water",
+        stylers: [{ color: "#c3d2e3" }],
       },
       {
-        featureType: 'road',
-        elementType: 'geometry.fill',
-        stylers: [{ color: '#2c2c2c' }],
-      },
-      {
-        featureType: 'road',
-        elementType: 'geometry.stroke',
-        stylers: [{ color: '#000000' }, { lightness: 25 }],
-      },
-      {
-        featureType: 'road.highway',
-        elementType: 'geometry.fill',
-        stylers: [{ color: '#000000' }, { lightness: 17 }],
-      },
-      {
-        featureType: 'poi',
-        elementType: 'geometry',
-        stylers: [{ color: '#283747' }],
-      },
-      {
-        featureType: 'transit',
-        elementType: 'geometry',
-        stylers: [{ color: '#2f3948' }],
-      },
+        featureType: "transit",
+        elementType: "labels",
+        stylers: [{ visibility: "on" }],
+      }
     ],
+    mapTypeControl: true,
+    mapTypeControlOptions: {
+      style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+      position: google.maps.ControlPosition.TOP_RIGHT,
+    },
+    zoomControl: true,
+    zoomControlOptions: {
+      position: google.maps.ControlPosition.RIGHT_CENTER,
+    },
+    scaleControl: true,
+    streetViewControl: true,
+    streetViewControlOptions: {
+      position: google.maps.ControlPosition.RIGHT_CENTER,
+    },
+    fullscreenControl: true,
   }), []);
 
   useEffect(() => {
     if (!userLocation || !map) return;
 
-    // Center map on user location
     map.panTo({ lat: userLocation.lat, lng: userLocation.lng });
 
-    // Clear existing markers
     map.overlayMapTypes.clear();
 
-    // Add custom markers for treasures and obstacles
+    new google.maps.Marker({
+      position: { lat: userLocation.lat, lng: userLocation.lng },
+      map,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 12,
+        fillColor: '#8B5CF6',
+        fillOpacity: 0.8,
+        strokeWeight: 3,
+        strokeColor: '#FFFFFF',
+      },
+      title: 'Your Location',
+    });
+
     treasures.forEach(treasure => {
       const distance = calculateDistance(userLocation, treasure);
-      if (distance <= 500) { // Only show items within 500m
+      if (distance <= 500) {
         const marker = new google.maps.Marker({
           position: { lat: treasure.lat, lng: treasure.lng },
           map,
@@ -103,7 +105,7 @@ const MapView = () => {
 
     obstacles.forEach(obstacle => {
       const distance = calculateDistance(userLocation, obstacle);
-      if (distance <= 500) { // Only show items within 500m
+      if (distance <= 500) {
         const marker = new google.maps.Marker({
           position: { lat: obstacle.lat, lng: obstacle.lng },
           map,
@@ -122,31 +124,17 @@ const MapView = () => {
       }
     });
 
-    // Add player marker with pulse effect
-    const playerMarker = new google.maps.Marker({
-      position: { lat: userLocation.lat, lng: userLocation.lng },
-      map,
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 12,
-        fillColor: '#8B5CF6',
-        fillOpacity: 0.8,
-        strokeWeight: 3,
-        strokeColor: '#FFFFFF',
-      },
-    });
-
-    // Create pulse circle
-    const pulseCircle = new google.maps.Circle({
+    new google.maps.Circle({
       map,
       center: { lat: userLocation.lat, lng: userLocation.lng },
-      radius: 20,
+      radius: userLocation.accuracy,
       fillColor: '#8B5CF6',
-      fillOpacity: 0.3,
-      strokeWeight: 0,
+      fillOpacity: 0.1,
+      strokeColor: '#8B5CF6',
+      strokeOpacity: 0.3,
+      strokeWeight: 2,
     });
 
-    // Animate pulse
     let opacity = 0.3;
     let expanding = true;
     const pulseInterval = setInterval(() => {
@@ -160,7 +148,6 @@ const MapView = () => {
       pulseCircle.setOptions({ fillOpacity: opacity });
     }, 50);
 
-    // Clean up interval when component unmounts
     return () => {
       clearInterval(pulseInterval);
     };
@@ -184,11 +171,7 @@ const MapView = () => {
         options={mapOptions}
         onLoad={map => setMap(map)}
       />
-
-      {/* Profile Button */}
       <ProfileDrawer />
-
-      {/* User Stats Component */}
       <UserStats />
     </div>
   );

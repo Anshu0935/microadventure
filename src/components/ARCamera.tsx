@@ -1,9 +1,8 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Camera, Eye, Video, VideoOff, Vr } from 'lucide-react';
+import { Camera, Eye, Video, VideoOff, Glasses } from 'lucide-react';
 import { isUserCloseEnough } from '@/utils/gameUtils';
 
 const ARCamera = () => {
@@ -25,13 +24,10 @@ const ARCamera = () => {
   const [nearbyObstacles, setNearbyObstacles] = useState<string[]>([]);
   const [vrCapable, setVrCapable] = useState<boolean>(false);
   
-  // Check VR capability
   useEffect(() => {
-    // Simple check if device might support device orientation
     setVrCapable(!!window.DeviceOrientationEvent);
   }, []);
 
-  // Start/stop camera when cameraActive state changes
   useEffect(() => {
     if (cameraActive) {
       startCamera();
@@ -44,19 +40,16 @@ const ARCamera = () => {
     };
   }, [cameraActive]);
 
-  // Check for nearby objects when user location changes
   useEffect(() => {
     if (!userLocation) return;
 
     const checkNearbyObjects = () => {
       if (!userLocation) return;
 
-      // Find treasures within 30 meters
       const closebyTreasures = treasures
         .filter(t => !t.found && isUserCloseEnough(userLocation, t, 30))
         .map(t => t.id);
       
-      // Find obstacles within 30 meters
       const closebyObstacles = obstacles
         .filter(o => !o.completed && isUserCloseEnough(userLocation, o, 30))
         .map(o => o.id);
@@ -67,7 +60,6 @@ const ARCamera = () => {
 
     checkNearbyObjects();
     
-    // Check every few seconds
     const intervalId = setInterval(checkNearbyObjects, 5000);
     
     return () => clearInterval(intervalId);
@@ -127,7 +119,7 @@ const ARCamera = () => {
             variant="outline"
             className="border-adventure-gold text-adventure-gold hover:bg-adventure-gold/10"
           >
-            <Vr className="mr-2 h-4 w-4" /> VR View
+            <Glasses className="mr-2 h-4 w-4" /> VR View
           </Button>
         )}
       </div>
@@ -149,16 +141,13 @@ const ARCamera = () => {
                 playsInline
               />
               <div className="camera-overlay absolute inset-0">
-                {/* 3D VR-like frame overlay */}
                 <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/40 to-transparent pointer-events-none"></div>
                 <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
                 <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-black/40 to-transparent pointer-events-none"></div>
                 <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-black/40 to-transparent pointer-events-none"></div>
               </div>
               
-              {/* AR overlay for nearby treasures & obstacles */}
               <div className="absolute inset-0 pointer-events-none">
-                {/* Show nearby treasures */}
                 {nearbyTreasures.length > 0 && (
                   <div className="absolute top-4 left-4 right-4 pointer-events-auto">
                     <Card className="p-3 bg-white/80 backdrop-blur-sm border-adventure-gold">
@@ -184,7 +173,6 @@ const ARCamera = () => {
                   </div>
                 )}
                 
-                {/* Show nearby obstacles */}
                 {nearbyObstacles.length > 0 && (
                   <div className="absolute bottom-4 left-4 right-4 pointer-events-auto">
                     <Card className="p-3 bg-white/80 backdrop-blur-sm border-adventure-danger">
@@ -210,7 +198,6 @@ const ARCamera = () => {
                   </div>
                 )}
                 
-                {/* Add 3D perspective guide lines */}
                 <div className="absolute inset-0 pointer-events-none">
                   <div className="absolute left-1/2 top-1/2 w-1 h-1 bg-white/50 rounded-full shadow-glow"></div>
                   <div className="absolute left-1/3 top-1/3 w-0.5 h-0.5 bg-white/30 rounded-full"></div>

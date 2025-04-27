@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Compass, Vr } from 'lucide-react';
+import { Compass, Glasses } from 'lucide-react';
 import ProfileDrawer from './ProfileDrawer';
 import UserStats from './UserStats';
 import { calculateDistance } from '@/utils/gameUtils';
@@ -245,7 +245,7 @@ const MapView = () => {
             vrMode ? 'bg-adventure-gold text-black' : 'bg-white text-gray-800'
           }`}
         >
-          <Vr className="h-5 w-5 mr-2" />
+          <Glasses className="h-5 w-5 mr-2" />
           <span>{vrMode ? 'Exit VR View' : 'Enter VR View'}</span>
         </button>
       </div>

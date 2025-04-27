@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import mapboxgl from 'mapbox-gl';
@@ -15,6 +14,7 @@ const MapView = () => {
   const userMarker = useRef<mapboxgl.Marker | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [vrMode, setVrMode] = useState(false);
+  const [deviceOrientationSupport, setDeviceOrientationSupport] = useState<boolean>(false);
   const previousPosition = useRef<{lat: number, lng: number} | null>(null);
 
   useEffect(() => {
@@ -70,7 +70,41 @@ const MapView = () => {
     };
   }, []);
 
-  // VR mode effect - calculate bearing based on movement
+  useEffect(() => {
+    const checkDeviceOrientationSupport = () => {
+      const hasDeviceOrientation = !!window.DeviceOrientationEvent;
+      const canRequestPermission = typeof DeviceOrientationEvent.requestPermission === 'function';
+      
+      console.log('Device Orientation Support:', {
+        hasDeviceOrientation,
+        canRequestPermission,
+        supportLevel: hasDeviceOrientation 
+          ? (canRequestPermission ? 'Full Support' : 'Partial Support') 
+          : 'Not Supported'
+      });
+
+      setDeviceOrientationSupport(hasDeviceOrientation);
+    };
+
+    checkDeviceOrientationSupport();
+  }, []);
+
+  const requestDeviceOrientationPermission = async () => {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const response = await DeviceOrientationEvent.requestPermission();
+        console.log('Device Orientation Permission:', response);
+        
+        if (response === 'granted') {
+          console.log('Device orientation permissions granted!');
+          // You can add additional VR-specific setup here
+        }
+      } catch (error) {
+        console.error('Device Orientation Permission Error:', error);
+      }
+    }
+  };
+
   useEffect(() => {
     if (!vrMode || !map.current || !userLocation) return;
     
@@ -94,7 +128,6 @@ const MapView = () => {
     previousPosition.current = { lat: userLocation.lat, lng: userLocation.lng };
   }, [userLocation, vrMode]);
 
-  // Update markers when user location or treasures/obstacles change
   useEffect(() => {
     if (!map.current || !mapLoaded || !userLocation) return;
 
@@ -202,8 +235,15 @@ const MapView = () => {
   }, [userLocation, treasures, obstacles, mapLoaded]);
 
   const toggleVRMode = () => {
-    setVrMode(!vrMode);
-    
+    console.log('VR Mode Toggled:', {
+      currentMode: vrMode,
+      deviceOrientationSupport
+    });
+
+    if (deviceOrientationSupport) {
+      requestDeviceOrientationPermission();
+    }
+
     if (map.current) {
       if (!vrMode) {
         // Entering VR mode
@@ -222,6 +262,8 @@ const MapView = () => {
         });
       }
     }
+
+    setVrMode(!vrMode);
   };
 
   if (!mapLoaded) {
@@ -237,20 +279,23 @@ const MapView = () => {
     <div className="relative w-full h-screen">
       <div ref={mapContainer} className="absolute inset-0" />
       
-      {/* VR Mode Toggle Button */}
       <div className="absolute top-4 left-4 z-10">
         <button
           onClick={toggleVRMode}
           className={`flex items-center rounded-lg px-3 py-2 shadow-lg transition-colors ${
             vrMode ? 'bg-adventure-gold text-black' : 'bg-white text-gray-800'
           }`}
+          disabled={!deviceOrientationSupport}
         >
           <Glasses className="h-5 w-5 mr-2" />
-          <span>{vrMode ? 'Exit VR View' : 'Enter VR View'}</span>
+          <span>
+            {deviceOrientationSupport 
+              ? (vrMode ? 'Exit VR View' : 'Enter VR View') 
+              : 'VR Not Supported'}
+          </span>
         </button>
       </div>
       
-      {/* VR Mode Indicator */}
       {vrMode && (
         <div className="absolute top-20 left-4 z-10 bg-black/70 text-white px-3 py-1 rounded-lg text-sm">
           VR Mode Active - Move to change view

@@ -25,7 +25,22 @@ const ARCamera = () => {
   const [vrCapable, setVrCapable] = useState<boolean>(false);
   
   useEffect(() => {
-    setVrCapable(!!window.DeviceOrientationEvent);
+    const checkVRCapability = () => {
+      const isVRCapable = !!(
+        window.DeviceOrientationEvent && 
+        typeof DeviceOrientationEvent.requestPermission === 'function'
+      );
+      
+      console.log('VR Capability Check:', {
+        hasDeviceOrientation: !!window.DeviceOrientationEvent,
+        canRequestPermission: typeof DeviceOrientationEvent.requestPermission === 'function',
+        isVRCapable: isVRCapable
+      });
+
+      setVrCapable(isVRCapable);
+    };
+
+    checkVRCapability();
   }, []);
 
   useEffect(() => {
@@ -100,6 +115,32 @@ const ARCamera = () => {
     clearObstacle(obstacleId);
   };
 
+  const VRButton = () => (
+    <Button
+      variant="outline"
+      onClick={requestVRPermission}
+      className="border-adventure-gold text-adventure-gold hover:bg-adventure-gold/10"
+    >
+      <Glasses className="mr-2 h-4 w-4" /> 
+      {vrCapable ? 'Enable VR View' : 'VR Not Supported'}
+    </Button>
+  );
+
+  const requestVRPermission = async () => {
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const response = await DeviceOrientationEvent.requestPermission();
+        console.log('Device Orientation Permission:', response);
+        
+        if (response === 'granted') {
+          console.log('VR permissions granted successfully!');
+        }
+      } catch (error) {
+        console.error('VR Permission Error:', error);
+      }
+    }
+  };
+
   return (
     <div className="w-full">
       <div className="flex justify-center mb-4 space-x-2">
@@ -114,14 +155,7 @@ const ARCamera = () => {
           )}
         </Button>
         
-        {vrCapable && (
-          <Button
-            variant="outline"
-            className="border-adventure-gold text-adventure-gold hover:bg-adventure-gold/10"
-          >
-            <Glasses className="mr-2 h-4 w-4" /> VR View
-          </Button>
-        )}
+        {vrCapable && <VRButton />}
       </div>
 
       {cameraActive && (

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import mapboxgl from 'mapbox-gl';
@@ -6,6 +7,15 @@ import { Compass, Glasses } from 'lucide-react';
 import ProfileDrawer from './ProfileDrawer';
 import UserStats from './UserStats';
 import { calculateDistance } from '@/utils/gameUtils';
+
+// For TypeScript to recognize the iOS-specific method
+interface DeviceOrientationEventiOS extends DeviceOrientationEvent {
+  requestPermission?: () => Promise<string>;
+}
+
+interface DeviceOrientationEventStatic extends EventTarget {
+  requestPermission?: () => Promise<string>;
+}
 
 const MapView = () => {
   const { userLocation, treasures, obstacles, selectTreasure, selectObstacle } = useGame();
@@ -72,8 +82,12 @@ const MapView = () => {
 
   useEffect(() => {
     const checkDeviceOrientationSupport = () => {
-      const hasDeviceOrientation = !!window.DeviceOrientationEvent;
-      const canRequestPermission = typeof DeviceOrientationEvent.requestPermission === 'function';
+      // Check if DeviceOrientationEvent exists
+      const hasDeviceOrientation = 'DeviceOrientationEvent' in window;
+      
+      // Check if it's the iOS implementation with requestPermission
+      const DeviceOrientation = window.DeviceOrientationEvent as unknown as DeviceOrientationEventStatic;
+      const canRequestPermission = hasDeviceOrientation && typeof DeviceOrientation.requestPermission === 'function';
       
       console.log('Device Orientation Support:', {
         hasDeviceOrientation,
@@ -90,9 +104,12 @@ const MapView = () => {
   }, []);
 
   const requestDeviceOrientationPermission = async () => {
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    // Access the DeviceOrientation API with iOS type safety
+    const DeviceOrientation = window.DeviceOrientationEvent as unknown as DeviceOrientationEventStatic;
+    
+    if (typeof DeviceOrientation.requestPermission === 'function') {
       try {
-        const response = await DeviceOrientationEvent.requestPermission();
+        const response = await DeviceOrientation.requestPermission();
         console.log('Device Orientation Permission:', response);
         
         if (response === 'granted') {
@@ -102,6 +119,18 @@ const MapView = () => {
       } catch (error) {
         console.error('Device Orientation Permission Error:', error);
       }
+    } else if (deviceOrientationSupport) {
+      // For browsers that support DeviceOrientation but don't need permission (most Android)
+      console.log('Device orientation events available without permission request');
+      
+      // Start listening for device orientation events
+      window.addEventListener('deviceorientation', (event) => {
+        console.log('Device Orientation Data:', {
+          alpha: event.alpha, // z-axis rotation
+          beta: event.beta,   // x-axis rotation
+          gamma: event.gamma  // y-axis rotation
+        });
+      });
     }
   };
 

@@ -1,9 +1,19 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Camera, Eye, Video, VideoOff, Glasses } from 'lucide-react';
 import { isUserCloseEnough } from '@/utils/gameUtils';
+
+// For TypeScript to recognize the iOS-specific method
+interface DeviceOrientationEventiOS extends DeviceOrientationEvent {
+  requestPermission?: () => Promise<string>;
+}
+
+interface DeviceOrientationEventStatic extends EventTarget {
+  requestPermission?: () => Promise<string>;
+}
 
 const ARCamera = () => {
   const { 
@@ -26,15 +36,19 @@ const ARCamera = () => {
   
   useEffect(() => {
     const checkVRCapability = () => {
-      const isVRCapable = !!(
-        window.DeviceOrientationEvent && 
-        typeof DeviceOrientationEvent.requestPermission === 'function'
-      );
+      // Check if DeviceOrientationEvent exists
+      const hasDeviceOrientation = 'DeviceOrientationEvent' in window;
+      
+      // Check if it's the iOS implementation with requestPermission
+      const DeviceOrientation = window.DeviceOrientationEvent as unknown as DeviceOrientationEventStatic;
+      const canRequestPermission = hasDeviceOrientation && typeof DeviceOrientation.requestPermission === 'function';
+      
+      const isVRCapable = hasDeviceOrientation;
       
       console.log('VR Capability Check:', {
-        hasDeviceOrientation: !!window.DeviceOrientationEvent,
-        canRequestPermission: typeof DeviceOrientationEvent.requestPermission === 'function',
-        isVRCapable: isVRCapable
+        hasDeviceOrientation,
+        canRequestPermission,
+        isVRCapable
       });
 
       setVrCapable(isVRCapable);
@@ -120,6 +134,7 @@ const ARCamera = () => {
       variant="outline"
       onClick={requestVRPermission}
       className="border-adventure-gold text-adventure-gold hover:bg-adventure-gold/10"
+      disabled={!vrCapable}
     >
       <Glasses className="mr-2 h-4 w-4" /> 
       {vrCapable ? 'Enable VR View' : 'VR Not Supported'}
@@ -127,9 +142,12 @@ const ARCamera = () => {
   );
 
   const requestVRPermission = async () => {
-    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    // Access the DeviceOrientation API with iOS type safety
+    const DeviceOrientation = window.DeviceOrientationEvent as unknown as DeviceOrientationEventStatic;
+    
+    if (typeof DeviceOrientation.requestPermission === 'function') {
       try {
-        const response = await DeviceOrientationEvent.requestPermission();
+        const response = await DeviceOrientation.requestPermission();
         console.log('Device Orientation Permission:', response);
         
         if (response === 'granted') {
@@ -138,6 +156,18 @@ const ARCamera = () => {
       } catch (error) {
         console.error('VR Permission Error:', error);
       }
+    } else if (vrCapable) {
+      // For browsers that support DeviceOrientation but don't need permission (most Android)
+      console.log('Device orientation events available without permission request');
+      
+      // Start listening for device orientation events
+      window.addEventListener('deviceorientation', (event) => {
+        console.log('Device Orientation Data:', {
+          alpha: event.alpha, // z-axis rotation
+          beta: event.beta,   // x-axis rotation
+          gamma: event.gamma  // y-axis rotation
+        });
+      });
     }
   };
 

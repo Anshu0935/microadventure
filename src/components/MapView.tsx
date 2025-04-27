@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Compass } from 'lucide-react';
+import { Compass, Vr } from 'lucide-react';
 import ProfileDrawer from './ProfileDrawer';
 import UserStats from './UserStats';
 import { calculateDistance } from '@/utils/gameUtils';
@@ -14,6 +14,8 @@ const MapView = () => {
   const map = useRef<mapboxgl.Map | null>(null);
   const userMarker = useRef<mapboxgl.Marker | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [vrMode, setVrMode] = useState(false);
+  const previousPosition = useRef<{lat: number, lng: number} | null>(null);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -22,7 +24,7 @@ const MapView = () => {
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/outdoors-v12', // Changed to outdoors style for better place visibility
+      style: 'mapbox://styles/mapbox/outdoors-v12', // Detailed outdoor style with place names
       center: userLocation ? [userLocation.lng, userLocation.lat] : [0, 0],
       zoom: 15,
       pitch: 45,
@@ -67,6 +69,30 @@ const MapView = () => {
       }
     };
   }, []);
+
+  // VR mode effect - calculate bearing based on movement
+  useEffect(() => {
+    if (!vrMode || !map.current || !userLocation) return;
+    
+    if (previousPosition.current) {
+      // Calculate bearing (direction of movement)
+      const dx = userLocation.lng - previousPosition.current.lng;
+      const dy = userLocation.lat - previousPosition.current.lat;
+      
+      if (Math.abs(dx) > 0.00001 || Math.abs(dy) > 0.00001) {
+        const bearing = (Math.atan2(dx, dy) * 180 / Math.PI);
+        
+        // Smoothly rotate the map to face the direction of movement
+        map.current.easeTo({
+          bearing: bearing,
+          pitch: 60, // Higher pitch for VR-like view
+          duration: 1000
+        });
+      }
+    }
+    
+    previousPosition.current = { lat: userLocation.lat, lng: userLocation.lng };
+  }, [userLocation, vrMode]);
 
   // Update markers when user location or treasures/obstacles change
   useEffect(() => {
@@ -175,6 +201,29 @@ const MapView = () => {
     });
   }, [userLocation, treasures, obstacles, mapLoaded]);
 
+  const toggleVRMode = () => {
+    setVrMode(!vrMode);
+    
+    if (map.current) {
+      if (!vrMode) {
+        // Entering VR mode
+        map.current.easeTo({
+          pitch: 60,
+          zoom: 17,
+          duration: 1000
+        });
+      } else {
+        // Exiting VR mode
+        map.current.easeTo({
+          pitch: 45,
+          bearing: 0,
+          zoom: 15,
+          duration: 1000
+        });
+      }
+    }
+  };
+
   if (!mapLoaded) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-white">
@@ -187,6 +236,27 @@ const MapView = () => {
   return (
     <div className="relative w-full h-screen">
       <div ref={mapContainer} className="absolute inset-0" />
+      
+      {/* VR Mode Toggle Button */}
+      <div className="absolute top-4 left-4 z-10">
+        <button
+          onClick={toggleVRMode}
+          className={`flex items-center rounded-lg px-3 py-2 shadow-lg transition-colors ${
+            vrMode ? 'bg-adventure-gold text-black' : 'bg-white text-gray-800'
+          }`}
+        >
+          <Vr className="h-5 w-5 mr-2" />
+          <span>{vrMode ? 'Exit VR View' : 'Enter VR View'}</span>
+        </button>
+      </div>
+      
+      {/* VR Mode Indicator */}
+      {vrMode && (
+        <div className="absolute top-20 left-4 z-10 bg-black/70 text-white px-3 py-1 rounded-lg text-sm">
+          VR Mode Active - Move to change view
+        </div>
+      )}
+      
       <ProfileDrawer />
       <UserStats />
     </div>

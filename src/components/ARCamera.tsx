@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Camera, Eye, Video, VideoOff } from 'lucide-react';
+import { Camera, Eye, Video, VideoOff, Vr } from 'lucide-react';
 import { isUserCloseEnough } from '@/utils/gameUtils';
 
 const ARCamera = () => {
@@ -23,6 +23,13 @@ const ARCamera = () => {
   const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
   const [nearbyTreasures, setNearbyTreasures] = useState<string[]>([]);
   const [nearbyObstacles, setNearbyObstacles] = useState<string[]>([]);
+  const [vrCapable, setVrCapable] = useState<boolean>(false);
+  
+  // Check VR capability
+  useEffect(() => {
+    // Simple check if device might support device orientation
+    setVrCapable(!!window.DeviceOrientationEvent);
+  }, []);
 
   // Start/stop camera when cameraActive state changes
   useEffect(() => {
@@ -103,7 +110,7 @@ const ARCamera = () => {
 
   return (
     <div className="w-full">
-      <div className="flex justify-center mb-4">
+      <div className="flex justify-center mb-4 space-x-2">
         <Button 
           onClick={toggleCamera} 
           className={cameraActive ? 'bg-adventure-danger' : 'bg-adventure-primary'}
@@ -114,6 +121,15 @@ const ARCamera = () => {
             <><Camera className="mr-2 h-4 w-4" /> Start AR Camera</>
           )}
         </Button>
+        
+        {vrCapable && (
+          <Button
+            variant="outline"
+            className="border-adventure-gold text-adventure-gold hover:bg-adventure-gold/10"
+          >
+            <Vr className="mr-2 h-4 w-4" /> VR View
+          </Button>
+        )}
       </div>
 
       {cameraActive && (
@@ -132,14 +148,20 @@ const ARCamera = () => {
                 autoPlay 
                 playsInline
               />
-              <div className="camera-overlay absolute inset-0"></div>
+              <div className="camera-overlay absolute inset-0">
+                {/* 3D VR-like frame overlay */}
+                <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/40 to-transparent pointer-events-none"></div>
+                <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/40 to-transparent pointer-events-none"></div>
+                <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-black/40 to-transparent pointer-events-none"></div>
+                <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-black/40 to-transparent pointer-events-none"></div>
+              </div>
               
               {/* AR overlay for nearby treasures & obstacles */}
               <div className="absolute inset-0 pointer-events-none">
                 {/* Show nearby treasures */}
                 {nearbyTreasures.length > 0 && (
                   <div className="absolute top-4 left-4 right-4 pointer-events-auto">
-                    <Card className="p-3 bg-white/80 backdrop-blur-sm">
+                    <Card className="p-3 bg-white/80 backdrop-blur-sm border-adventure-gold">
                       <p className="text-sm font-bold">Nearby Treasures!</p>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {nearbyTreasures.map(id => {
@@ -150,7 +172,7 @@ const ARCamera = () => {
                               key={id} 
                               size="sm" 
                               variant="outline" 
-                              className="bg-amber-100 text-amber-800 border-amber-300"
+                              className="bg-amber-100 text-amber-800 border-amber-300 hover-scale"
                               onClick={() => handleCollectTreasure(id)}
                             >
                               Collect {treasure.name}
@@ -165,7 +187,7 @@ const ARCamera = () => {
                 {/* Show nearby obstacles */}
                 {nearbyObstacles.length > 0 && (
                   <div className="absolute bottom-4 left-4 right-4 pointer-events-auto">
-                    <Card className="p-3 bg-white/80 backdrop-blur-sm">
+                    <Card className="p-3 bg-white/80 backdrop-blur-sm border-adventure-danger">
                       <p className="text-sm font-bold">Obstacles Detected!</p>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {nearbyObstacles.map(id => {
@@ -176,7 +198,7 @@ const ARCamera = () => {
                               key={id} 
                               size="sm" 
                               variant="outline"
-                              className="bg-rose-100 text-rose-800 border-rose-300" 
+                              className="bg-rose-100 text-rose-800 border-rose-300 hover-scale" 
                               onClick={() => handleClearObstacle(id)}
                             >
                               Clear {obstacle.type}
@@ -187,6 +209,15 @@ const ARCamera = () => {
                     </Card>
                   </div>
                 )}
+                
+                {/* Add 3D perspective guide lines */}
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute left-1/2 top-1/2 w-1 h-1 bg-white/50 rounded-full shadow-glow"></div>
+                  <div className="absolute left-1/3 top-1/3 w-0.5 h-0.5 bg-white/30 rounded-full"></div>
+                  <div className="absolute left-2/3 top-1/3 w-0.5 h-0.5 bg-white/30 rounded-full"></div>
+                  <div className="absolute left-1/3 top-2/3 w-0.5 h-0.5 bg-white/30 rounded-full"></div>
+                  <div className="absolute left-2/3 top-2/3 w-0.5 h-0.5 bg-white/30 rounded-full"></div>
+                </div>
               </div>
             </>
           )}

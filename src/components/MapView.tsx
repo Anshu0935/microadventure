@@ -18,25 +18,47 @@ const MapView = () => {
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
 
-    // Initialize Mapbox
     mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHQ3ZjlwbXYwYmF0MmpvNTB4Y3Y1MzJiIn0.a5zvZ6-DUlGxLxMEQXwSXw';
 
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/streets-v12',
+      style: 'mapbox://styles/mapbox/outdoors-v12', // Changed to outdoors style for better place visibility
       center: userLocation ? [userLocation.lng, userLocation.lat] : [0, 0],
       zoom: 15,
       pitch: 45,
+      attributionControl: true,
     });
 
+    // Add zoom and rotation controls
     map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    
+    // Add user location control
     map.current.addControl(new mapboxgl.GeolocateControl({
       positionOptions: { enableHighAccuracy: true },
       trackUserLocation: true,
+      showUserHeading: true,
     }));
 
-    map.current.on('load', () => {
+    // Enable terrain if available
+    map.current.on('style.load', () => {
       setMapLoaded(true);
+      
+      // Add 3D buildings layer for more realism
+      if (map.current) {
+        map.current.addLayer({
+          'id': '3d-buildings',
+          'source': 'composite',
+          'source-layer': 'building',
+          'filter': ['==', 'extrude', 'true'],
+          'type': 'fill-extrusion',
+          'minzoom': 15,
+          'paint': {
+            'fill-extrusion-color': '#aaa',
+            'fill-extrusion-height': ['get', 'height'],
+            'fill-extrusion-opacity': 0.6
+          }
+        });
+      }
     });
 
     return () => {
@@ -50,16 +72,20 @@ const MapView = () => {
   useEffect(() => {
     if (!map.current || !mapLoaded || !userLocation) return;
 
-    // Update map center
-    map.current.flyTo({
+    // Update map center smoothly
+    map.current.easeTo({
       center: [userLocation.lng, userLocation.lat],
-      essential: true
+      duration: 1000
     });
 
-    // Update user location marker
+    // Update user location marker with a more visible style
     if (!userMarker.current) {
       const el = document.createElement('div');
-      el.className = 'w-4 h-4 bg-adventure-primary rounded-full border-2 border-white shadow-lg';
+      el.className = 'w-6 h-6 bg-adventure-primary rounded-full border-4 border-white shadow-lg relative';
+      const pulse = document.createElement('div');
+      pulse.className = 'absolute -inset-2 bg-adventure-primary/30 rounded-full animate-pulse';
+      el.appendChild(pulse);
+      
       userMarker.current = new mapboxgl.Marker(el)
         .setLngLat([userLocation.lng, userLocation.lat])
         .addTo(map.current);
@@ -67,9 +93,12 @@ const MapView = () => {
       userMarker.current.setLngLat([userLocation.lng, userLocation.lat]);
     }
 
-    // Add accuracy circle
-    if (userLocation.accuracy) {
-      map.current.addSource('accuracy-circle', {
+    // Add accuracy circle with a more subtle style
+    const circleId = 'accuracy-circle';
+    const circleSource = map.current.getSource(circleId);
+
+    if (!circleSource) {
+      map.current.addSource(circleId, {
         type: 'geojson',
         data: {
           type: 'Feature',
@@ -84,32 +113,35 @@ const MapView = () => {
       });
 
       map.current.addLayer({
-        id: 'accuracy-circle',
+        id: circleId,
         type: 'circle',
-        source: 'accuracy-circle',
+        source: circleId,
         paint: {
           'circle-radius': ['get', 'radius'],
           'circle-color': '#8B5CF6',
-          'circle-opacity': 0.2,
-          'circle-stroke-width': 2,
+          'circle-opacity': 0.15,
+          'circle-stroke-width': 1,
           'circle-stroke-color': '#8B5CF6'
         }
       });
     }
 
-    // Add treasures and obstacles within 500m
+    // Update treasures with improved styling
     treasures.forEach(treasure => {
       const distance = calculateDistance(userLocation, treasure);
       if (distance <= 500) {
         const el = document.createElement('div');
-        el.className = `w-3 h-3 rounded-full ${treasure.found ? 'bg-gray-500' : 'bg-adventure-gold'} border border-white`;
+        el.className = `w-4 h-4 ${treasure.found ? 'bg-gray-400' : 'bg-adventure-gold'} rounded-full border-2 border-white shadow-lg transform -translate-x-2 -translate-y-2`;
         
         new mapboxgl.Marker(el)
           .setLngLat([treasure.lng, treasure.lat])
-          .setPopup(new mapboxgl.Popup().setHTML(`
-            <div class="p-2">
-              <h3 class="font-bold">${treasure.name}</h3>
-              <p class="text-sm">${Math.round(distance)}m away</p>
+          .setPopup(new mapboxgl.Popup({
+            offset: 25,
+            className: 'rounded-lg shadow-lg'
+          }).setHTML(`
+            <div class="p-3">
+              <h3 class="font-bold text-adventure-primary">${treasure.name}</h3>
+              <p class="text-sm text-gray-600">${Math.round(distance)}m away</p>
             </div>
           `))
           .addTo(map.current)
@@ -118,19 +150,22 @@ const MapView = () => {
       }
     });
 
-    // Add obstacles
+    // Update obstacles with improved styling
     obstacles.forEach(obstacle => {
       const distance = calculateDistance(userLocation, obstacle);
       if (distance <= 500) {
         const el = document.createElement('div');
-        el.className = `w-3 h-3 rounded-full ${obstacle.completed ? 'bg-gray-500' : 'bg-adventure-danger'} border border-white`;
+        el.className = `w-4 h-4 ${obstacle.completed ? 'bg-gray-400' : 'bg-adventure-danger'} rounded-full border-2 border-white shadow-lg transform -translate-x-2 -translate-y-2`;
         
         new mapboxgl.Marker(el)
           .setLngLat([obstacle.lng, obstacle.lat])
-          .setPopup(new mapboxgl.Popup().setHTML(`
-            <div class="p-2">
-              <h3 class="font-bold">${obstacle.type}</h3>
-              <p class="text-sm">${Math.round(distance)}m away</p>
+          .setPopup(new mapboxgl.Popup({
+            offset: 25,
+            className: 'rounded-lg shadow-lg'
+          }).setHTML(`
+            <div class="p-3">
+              <h3 class="font-bold text-adventure-danger">${obstacle.type}</h3>
+              <p class="text-sm text-gray-600">${Math.round(distance)}m away</p>
             </div>
           `))
           .addTo(map.current)
@@ -142,15 +177,15 @@ const MapView = () => {
 
   if (!mapLoaded) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-[#1A1F2C]">
+      <div className="flex flex-col items-center justify-center h-screen bg-white">
         <Compass className="h-12 w-12 text-adventure-primary animate-pulse" />
-        <p className="text-lg font-medium mt-4 text-white">Loading map...</p>
+        <p className="text-lg font-medium mt-4 text-gray-800">Loading map...</p>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-screen overflow-hidden">
+    <div className="relative w-full h-screen">
       <div ref={mapContainer} className="absolute inset-0" />
       <ProfileDrawer />
       <UserStats />

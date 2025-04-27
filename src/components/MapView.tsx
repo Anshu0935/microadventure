@@ -1,154 +1,35 @@
-
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useGame } from '@/contexts/GameContext';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Compass, Glasses } from 'lucide-react';
+import { Compass } from 'lucide-react';
 import ProfileDrawer from './ProfileDrawer';
 import UserStats from './UserStats';
 import { calculateDistance } from '@/utils/gameUtils';
-
-// For TypeScript to recognize the iOS-specific method
-interface DeviceOrientationEventiOS extends DeviceOrientationEvent {
-  requestPermission?: () => Promise<string>;
-}
-
-interface DeviceOrientationEventStatic extends EventTarget {
-  requestPermission?: () => Promise<string>;
-}
+import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
+import { useMapbox } from '@/hooks/useMapbox';
+import VRModeToggle from './VRModeToggle';
 
 const MapView = () => {
   const { userLocation, treasures, obstacles, selectTreasure, selectObstacle } = useGame();
-  const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const userMarker = useRef<mapboxgl.Marker | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
   const [vrMode, setVrMode] = useState(false);
-  const [deviceOrientationSupport, setDeviceOrientationSupport] = useState<boolean>(false);
   const previousPosition = useRef<{lat: number, lng: number} | null>(null);
-
-  useEffect(() => {
-    if (!mapContainer.current || map.current) return;
-
-    mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHQ3ZjlwbXYwYmF0MmpvNTB4Y3Y1MzJiIn0.a5zvZ6-DUlGxLxMEQXwSXw';
-
-    map.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: 'mapbox://styles/mapbox/outdoors-v12', // Detailed outdoor style with place names
-      center: userLocation ? [userLocation.lng, userLocation.lat] : [0, 0],
-      zoom: 15,
-      pitch: 45,
-      attributionControl: true,
-    });
-
-    // Add zoom and rotation controls
-    map.current.addControl(new mapboxgl.NavigationControl(), 'top-right');
-    
-    // Add user location control
-    map.current.addControl(new mapboxgl.GeolocateControl({
-      positionOptions: { enableHighAccuracy: true },
-      trackUserLocation: true,
-      showUserHeading: true,
-    }));
-
-    // Enable terrain if available
-    map.current.on('style.load', () => {
-      setMapLoaded(true);
-      
-      // Add 3D buildings layer for more realism
-      if (map.current) {
-        map.current.addLayer({
-          'id': '3d-buildings',
-          'source': 'composite',
-          'source-layer': 'building',
-          'filter': ['==', 'extrude', 'true'],
-          'type': 'fill-extrusion',
-          'minzoom': 15,
-          'paint': {
-            'fill-extrusion-color': '#aaa',
-            'fill-extrusion-height': ['get', 'height'],
-            'fill-extrusion-opacity': 0.6
-          }
-        });
-      }
-    });
-
-    return () => {
-      if (map.current) {
-        map.current.remove();
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    const checkDeviceOrientationSupport = () => {
-      // Check if DeviceOrientationEvent exists
-      const hasDeviceOrientation = 'DeviceOrientationEvent' in window;
-      
-      // Check if it's the iOS implementation with requestPermission
-      const DeviceOrientation = window.DeviceOrientationEvent as unknown as DeviceOrientationEventStatic;
-      const canRequestPermission = hasDeviceOrientation && typeof DeviceOrientation.requestPermission === 'function';
-      
-      console.log('Device Orientation Support:', {
-        hasDeviceOrientation,
-        canRequestPermission,
-        supportLevel: hasDeviceOrientation 
-          ? (canRequestPermission ? 'Full Support' : 'Partial Support') 
-          : 'Not Supported'
-      });
-
-      setDeviceOrientationSupport(hasDeviceOrientation);
-    };
-
-    checkDeviceOrientationSupport();
-  }, []);
-
-  const requestDeviceOrientationPermission = async () => {
-    // Access the DeviceOrientation API with iOS type safety
-    const DeviceOrientation = window.DeviceOrientationEvent as unknown as DeviceOrientationEventStatic;
-    
-    if (typeof DeviceOrientation.requestPermission === 'function') {
-      try {
-        const response = await DeviceOrientation.requestPermission();
-        console.log('Device Orientation Permission:', response);
-        
-        if (response === 'granted') {
-          console.log('Device orientation permissions granted!');
-          // You can add additional VR-specific setup here
-        }
-      } catch (error) {
-        console.error('Device Orientation Permission Error:', error);
-      }
-    } else if (deviceOrientationSupport) {
-      // For browsers that support DeviceOrientation but don't need permission (most Android)
-      console.log('Device orientation events available without permission request');
-      
-      // Start listening for device orientation events
-      window.addEventListener('deviceorientation', (event) => {
-        console.log('Device Orientation Data:', {
-          alpha: event.alpha, // z-axis rotation
-          beta: event.beta,   // x-axis rotation
-          gamma: event.gamma  // y-axis rotation
-        });
-      });
-    }
-  };
+  const { deviceOrientationSupport, requestDeviceOrientationPermission } = useDeviceOrientation();
+  const { mapContainer, map, userMarker, mapLoaded } = useMapbox(userLocation);
 
   useEffect(() => {
     if (!vrMode || !map.current || !userLocation) return;
     
     if (previousPosition.current) {
-      // Calculate bearing (direction of movement)
       const dx = userLocation.lng - previousPosition.current.lng;
       const dy = userLocation.lat - previousPosition.current.lat;
       
       if (Math.abs(dx) > 0.00001 || Math.abs(dy) > 0.00001) {
         const bearing = (Math.atan2(dx, dy) * 180 / Math.PI);
         
-        // Smoothly rotate the map to face the direction of movement
         map.current.easeTo({
           bearing: bearing,
-          pitch: 60, // Higher pitch for VR-like view
+          pitch: 60,
           duration: 1000
         });
       }
@@ -160,13 +41,11 @@ const MapView = () => {
   useEffect(() => {
     if (!map.current || !mapLoaded || !userLocation) return;
 
-    // Update map center smoothly
     map.current.easeTo({
       center: [userLocation.lng, userLocation.lat],
       duration: 1000
     });
 
-    // Update user location marker with a more visible style
     if (!userMarker.current) {
       const el = document.createElement('div');
       el.className = 'w-6 h-6 bg-adventure-primary rounded-full border-4 border-white shadow-lg relative';
@@ -181,7 +60,6 @@ const MapView = () => {
       userMarker.current.setLngLat([userLocation.lng, userLocation.lat]);
     }
 
-    // Add accuracy circle with a more subtle style
     const circleId = 'accuracy-circle';
     const circleSource = map.current.getSource(circleId);
 
@@ -214,7 +92,6 @@ const MapView = () => {
       });
     }
 
-    // Update treasures with improved styling
     treasures.forEach(treasure => {
       const distance = calculateDistance(userLocation, treasure);
       if (distance <= 500) {
@@ -238,7 +115,6 @@ const MapView = () => {
       }
     });
 
-    // Update obstacles with improved styling
     obstacles.forEach(obstacle => {
       const distance = calculateDistance(userLocation, obstacle);
       if (distance <= 500) {
@@ -275,14 +151,12 @@ const MapView = () => {
 
     if (map.current) {
       if (!vrMode) {
-        // Entering VR mode
         map.current.easeTo({
           pitch: 60,
           zoom: 17,
           duration: 1000
         });
       } else {
-        // Exiting VR mode
         map.current.easeTo({
           pitch: 45,
           bearing: 0,
@@ -307,30 +181,11 @@ const MapView = () => {
   return (
     <div className="relative w-full h-screen">
       <div ref={mapContainer} className="absolute inset-0" />
-      
-      <div className="absolute top-4 left-4 z-10">
-        <button
-          onClick={toggleVRMode}
-          className={`flex items-center rounded-lg px-3 py-2 shadow-lg transition-colors ${
-            vrMode ? 'bg-adventure-gold text-black' : 'bg-white text-gray-800'
-          }`}
-          disabled={!deviceOrientationSupport}
-        >
-          <Glasses className="h-5 w-5 mr-2" />
-          <span>
-            {deviceOrientationSupport 
-              ? (vrMode ? 'Exit VR View' : 'Enter VR View') 
-              : 'VR Not Supported'}
-          </span>
-        </button>
-      </div>
-      
-      {vrMode && (
-        <div className="absolute top-20 left-4 z-10 bg-black/70 text-white px-3 py-1 rounded-lg text-sm">
-          VR Mode Active - Move to change view
-        </div>
-      )}
-      
+      <VRModeToggle 
+        vrMode={vrMode}
+        deviceOrientationSupport={deviceOrientationSupport}
+        onToggle={toggleVRMode}
+      />
       <ProfileDrawer />
       <UserStats />
     </div>

@@ -15,22 +15,22 @@ const TutorialPage = () => {
     {
       title: "Welcome to Your Quest",
       content: "This tutorial will guide you through the basics of treasure hunting in AR.",
-      image: "/placeholder.svg"
+      image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?auto=format&fit=crop&w=800&q=80"
     },
     {
       title: "Using the Map",
       content: "Gold dots represent treasures, colored dots represent obstacles. Move closer to interact with them!",
-      image: "/placeholder.svg"
+      image: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?auto=format&fit=crop&w=800&q=80"
     },
     {
       title: "AR Camera Mode",
       content: "Switch to AR mode when near a treasure or obstacle to interact with it in your environment.",
-      image: "/placeholder.svg"
+      image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?auto=format&fit=crop&w=800&q=80"
     },
     {
       title: "Ready to Begin",
       content: "You're all set! Start exploring and collecting treasures in your area.",
-      image: "/placeholder.svg"
+      image: "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?auto=format&fit=crop&w=800&q=80"
     }
   ];
 
@@ -60,7 +60,7 @@ const TutorialPage = () => {
           <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
             <img 
               src={tutorials[step - 1].image} 
-              alt={`Tutorial step ${step}`} 
+              alt={tutorials[step - 1].title}
               className="w-full h-full object-cover"
             />
           </div>

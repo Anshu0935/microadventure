@@ -35,7 +35,7 @@ export const useMapbox = (userLocation: UserLocation | null) => {
       trackResize: false,
       fadeDuration: 0, // Disable fade animations for faster rendering
       renderWorldCopies: false, // Disable world copies for simple view
-      interactive: false, // Enable interaction after load
+      interactive: true, // Default to interactive, no need to change later
     });
 
     // Set loading state flag
@@ -48,9 +48,6 @@ export const useMapbox = (userLocation: UserLocation | null) => {
       // Performance tracking
       const loadTime = performance.now() - loadingStartTime;
       console.log(`Map loaded in ${loadTime}ms`);
-      
-      // Enable interactions after map loads
-      map.current.interactive = true;
       
       // Add controls only after main map load
       const nav = new mapboxgl.NavigationControl({ 

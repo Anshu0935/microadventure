@@ -9,13 +9,87 @@ import { calculateDistance } from '@/utils/gameUtils';
 import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 import { useMapbox } from '@/hooks/useMapbox';
 import VRModeToggle from './VRModeToggle';
+import { Treasure } from '@/types';
+import { Obstacle } from '@/types';
+
+interface Props {
+  treasure: Treasure;
+}
+
+const TreasureMarker = ({ treasure }: Props) => {
+  const { userLocation, selectTreasure } = useGame();
+  const { map } = useMapbox(userLocation);
+
+  useEffect(() => {
+    if (!map.current || !userLocation) return;
+
+    const distance = calculateDistance(userLocation, treasure);
+    if (distance <= 500) {
+      const el = document.createElement('div');
+      el.className = `w-4 h-4 ${treasure.found ? 'bg-gray-400' : 'bg-adventure-gold'} rounded-full border-2 border-white shadow-lg transform -translate-x-2 -translate-y-2`;
+      
+      new mapboxgl.Marker(el)
+        .setLngLat([treasure.lng, treasure.lat])
+        .setPopup(new mapboxgl.Popup({
+          offset: 25,
+          className: 'rounded-lg shadow-lg'
+        }).setHTML(`
+          <div class="p-3">
+            <h3 class="font-bold text-adventure-primary">${treasure.name}</h3>
+            <p class="text-sm text-gray-600">${Math.round(distance)}m away</p>
+          </div>
+        `))
+        .addTo(map.current)
+        .getElement()
+        .addEventListener('click', () => selectTreasure(treasure.id));
+    }
+  }, [userLocation, treasure, map, selectTreasure]);
+
+  return null;
+};
+
+interface ObstacleProps {
+  obstacle: Obstacle;
+}
+
+const ObstacleMarker = ({ obstacle }: ObstacleProps) => {
+  const { userLocation, selectObstacle } = useGame();
+  const { map } = useMapbox(userLocation);
+
+  useEffect(() => {
+    if (!map.current || !userLocation) return;
+
+    const distance = calculateDistance(userLocation, obstacle);
+    if (distance <= 500) {
+      const el = document.createElement('div');
+      el.className = `w-4 h-4 ${obstacle.completed ? 'bg-gray-400' : 'bg-adventure-danger'} rounded-full border-2 border-white shadow-lg transform -translate-x-2 -translate-y-2`;
+      
+      new mapboxgl.Marker(el)
+        .setLngLat([obstacle.lng, obstacle.lat])
+        .setPopup(new mapboxgl.Popup({
+          offset: 25,
+          className: 'rounded-lg shadow-lg'
+        }).setHTML(`
+          <div class="p-3">
+            <h3 class="font-bold text-adventure-danger">${obstacle.type}</h3>
+            <p class="text-sm text-gray-600">${Math.round(distance)}m away</p>
+          </div>
+        `))
+        .addTo(map.current)
+        .getElement()
+        .addEventListener('click', () => selectObstacle(obstacle.id));
+    }
+  }, [userLocation, obstacle, map, selectObstacle]);
+
+  return null;
+};
 
 const MapView = () => {
   const { userLocation, treasures, obstacles, selectTreasure, selectObstacle } = useGame();
   const [vrMode, setVrMode] = useState(false);
   const previousPosition = useRef<{lat: number, lng: number} | null>(null);
   const { deviceOrientationSupport, requestDeviceOrientationPermission } = useDeviceOrientation();
-  const { mapContainer, map, userMarker, mapLoaded } = useMapbox(userLocation);
+  const { mapContainer, map, mapLoaded } = useMapbox(userLocation);
 
   useEffect(() => {
     if (!vrMode || !map.current || !userLocation) return;
@@ -181,6 +255,12 @@ const MapView = () => {
   return (
     <div className="relative w-full h-screen">
       <div ref={mapContainer} className="absolute inset-0" />
+        {treasures.map(treasure => (
+          <TreasureMarker key={treasure.id} treasure={treasure} />
+        ))}
+        {obstacles.map(obstacle => (
+          <ObstacleMarker key={obstacle.id} obstacle={obstacle} />
+        ))}
       <VRModeToggle 
         vrMode={vrMode}
         deviceOrientationSupport={deviceOrientationSupport}

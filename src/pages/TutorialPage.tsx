@@ -30,7 +30,7 @@ const TutorialPage = () => {
     {
       title: "Ready to Begin",
       content: "You're all set! Start exploring and collecting treasures in your area.",
-      image: "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?auto=format&fit=crop&w=800&q=80" // Animated treasure hunt image (colorful code visualization)
+      image: "/lovable-uploads/6de33f13-f004-4a6b-a8fb-b4b49ad98744.png" // Treasure map image
     }
   ];
 

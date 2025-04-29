@@ -14,93 +14,86 @@ export const useMapbox = (userLocation: UserLocation | null) => {
 
     mapboxgl.accessToken = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbHQ3ZjlwbXYwYmF0MmpvNTB4Y3Y1MzJiIn0.a5zvZ6-DUlGxLxMEQXwSXw';
 
-    // Further performance optimizations
-    const initialZoom = userLocation ? 12 : 1; // Lower initial zoom for faster loading
-    
-    // Pre-create styles object to avoid runtime calculations
-    const mapStyle = 'mapbox://styles/mapbox/light-v11'; // Using light style which is lighter
-    
+    // Create a game-like map style similar to Pokémon GO
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
-      style: mapStyle,
+      // Use a more colorful, simplified style like in mobile games
+      style: 'mapbox://styles/mapbox/streets-v12',
       center: userLocation ? [userLocation.lng, userLocation.lat] : [0, 0],
-      zoom: initialZoom,
-      pitch: 0, // Start with flat view, apply pitch later when loaded
-      attributionControl: false, // Will add later after map loads
-      // Performance options
-      maxZoom: 18,
-      minZoom: 1,
-      antialias: false,
-      preserveDrawingBuffer: false,
-      trackResize: false,
-      fadeDuration: 0, // Disable fade animations for faster rendering
-      renderWorldCopies: false, // Disable world copies for simple view
-      interactive: true, // Default to interactive, no need to change later
+      zoom: userLocation ? 16 : 2, // Closer zoom for game-like experience
+      attributionControl: false,
+      maxZoom: 19.5,
+      minZoom: 2,
+      antialias: true,
+      pitch: 0, // Flat view for game-like appearance
+      bearing: 0,
+      trackResize: true,
+      renderWorldCopies: false,
     });
 
-    // Set loading state flag
-    const loadingStartTime = performance.now();
-
-    // Only add essential controls after map is loaded
+    // Customize the map to look more like a game map
     map.current.once('load', () => {
       if (!map.current) return;
       
-      // Performance tracking
-      const loadTime = performance.now() - loadingStartTime;
-      console.log(`Map loaded in ${loadTime}ms`);
+      // Log load time for performance tracking
+      console.log(`Game map loaded!`);
       
-      // Add controls only after main map load
-      const nav = new mapboxgl.NavigationControl({ 
-        showCompass: false,
-        visualizePitch: false
+      // Simplify map by removing unnecessary labels
+      if (map.current.getLayer('poi-label')) {
+        map.current.setLayoutProperty('poi-label', 'visibility', 'none');
+      }
+      
+      // Add minimal controls for game-like feel
+      const nav = new mapboxgl.NavigationControl({
+        showCompass: true,
+        visualizePitch: false,
+        showZoom: true
       });
-      map.current.addControl(nav, 'top-right');
+      map.current.addControl(nav, 'bottom-right');
       
-      // Add attribution control
-      map.current.addControl(new mapboxgl.AttributionControl({
-        compact: true
-      }));
-      
-      // Add geolocate with minimal options
+      // Add geolocate for player positioning
       const geolocate = new mapboxgl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true },
         trackUserLocation: true,
-        showUserHeading: false, // Simplified
+        showUserHeading: true,
       });
-      map.current.addControl(geolocate);
+      map.current.addControl(geolocate, 'bottom-right');
       
-      // Add slight pitch for better UX
-      map.current.easeTo({
-        pitch: 30,
-        duration: 1000
-      });
-      
-      setMapLoaded(true);
-    });
-
-    // Only add 3D buildings at high zoom levels, using event delegation
-    map.current.on('zoomend', () => {
-      if (!map.current) return;
-      
-      const currentZoom = map.current.getZoom();
-      const has3DLayer = map.current.getLayer('3d-buildings');
-      
-      // Add 3D buildings only at high zoom and if not already added
-      if (currentZoom > 15 && !has3DLayer) {
-        map.current.addLayer({
-          'id': '3d-buildings',
-          'source': 'composite',
-          'source-layer': 'building',
-          'filter': ['==', 'extrude', 'true'],
-          'type': 'fill-extrusion',
-          'minzoom': 15,
-          'paint': {
-            'fill-extrusion-color': '#aaa',
-            'fill-extrusion-height': ['get', 'height'],
-            'fill-extrusion-opacity': 0.6
-          }
+      // Add subtle fog effect for game atmosphere
+      if (map.current.setFog) {
+        map.current.setFog({
+          'color': 'rgb(220, 230, 240)',
+          'horizon-blend': 0.1
         });
       }
+
+      // Apply custom coloring to water features
+      if (map.current.getLayer('water')) {
+        map.current.setPaintProperty('water', 'fill-color', '#a2d2ff');
+      }
+      
+      // Make parks more vibrant like in Pokémon GO
+      if (map.current.getLayer('landuse')) {
+        map.current.setPaintProperty('landuse', 'fill-color', [
+          'match',
+          ['get', 'class'],
+          'park', '#90ee90', // Light green for parks
+          'cemetery', '#b4eeb4', // Pale green for cemeteries
+          'hospital', '#ffebcd', // Blend for hospital areas
+          'school', '#ffe4b5', // Light tan for schools
+          '#f8f4f0' // Default
+        ]);
+      }
+
+      // Roads in lighter colors
+      if (map.current.getLayer('road-primary')) {
+        map.current.setPaintProperty('road-primary', 'line-color', '#f5f5f5');
+      }
+      if (map.current.getLayer('road-secondary')) {
+        map.current.setPaintProperty('road-secondary', 'line-color', '#ffffff');
+      }
+      
+      setMapLoaded(true);
     });
 
     return () => {
@@ -109,6 +102,100 @@ export const useMapbox = (userLocation: UserLocation | null) => {
       }
     };
   }, []);
+
+  // Update user position marker with a game-like avatar
+  useEffect(() => {
+    if (!map.current || !mapLoaded || !userLocation) return;
+
+    // Center map on user
+    map.current.easeTo({
+      center: [userLocation.lng, userLocation.lat],
+      duration: 500
+    });
+
+    // Create a custom game-like avatar marker for the player
+    if (!userMarker.current) {
+      // Create avatar container
+      const el = document.createElement('div');
+      el.className = 'w-10 h-10 relative';
+      
+      // Create avatar circle
+      const avatar = document.createElement('div');
+      avatar.className = 'absolute inset-0 bg-adventure-primary rounded-full border-4 border-white shadow-lg z-10';
+      
+      // Create player direction indicator
+      const direction = document.createElement('div');
+      direction.className = 'absolute w-0 h-0 top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-20';
+      direction.style.borderLeft = '6px solid transparent';
+      direction.style.borderRight = '6px solid transparent';
+      direction.style.borderBottom = '12px solid white';
+      
+      // Create pulse effect
+      const pulse = document.createElement('div');
+      pulse.className = 'absolute -inset-4 bg-adventure-primary/30 rounded-full animate-pulse z-5';
+      
+      // Add elements to container
+      el.appendChild(pulse);
+      el.appendChild(avatar);
+      el.appendChild(direction);
+      
+      // Create and add marker
+      userMarker.current = new mapboxgl.Marker({
+        element: el,
+        rotationAlignment: 'map'
+      })
+      .setLngLat([userLocation.lng, userLocation.lat])
+      .addTo(map.current);
+    } else {
+      userMarker.current.setLngLat([userLocation.lng, userLocation.lat]);
+    }
+
+    // Add player's detection radius
+    const circleId = 'player-radius';
+    const circleSource = map.current.getSource(circleId);
+
+    if (!circleSource) {
+      map.current.addSource(circleId, {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          geometry: {
+            type: 'Point',
+            coordinates: [userLocation.lng, userLocation.lat]
+          },
+          properties: {
+            radius: 100 // Detection radius in meters
+          }
+        }
+      });
+
+      map.current.addLayer({
+        id: circleId,
+        type: 'circle',
+        source: circleId,
+        paint: {
+          'circle-radius': ['get', 'radius'],
+          'circle-color': '#8B5CF6',
+          'circle-opacity': 0.1,
+          'circle-stroke-width': 2,
+          'circle-stroke-color': '#8B5CF6',
+          'circle-stroke-opacity': 0.3
+        }
+      });
+    } else if (circleSource.type === 'geojson') {
+      // Update the circle position as player moves
+      (circleSource as mapboxgl.GeoJSONSource).setData({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [userLocation.lng, userLocation.lat]
+        },
+        properties: {
+          radius: 100
+        }
+      });
+    }
+  }, [userLocation, mapLoaded]);
 
   return {
     mapContainer,

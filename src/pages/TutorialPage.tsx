@@ -15,22 +15,22 @@ const TutorialPage = () => {
     {
       title: "Welcome to Your Quest",
       content: "This tutorial will guide you through the basics of treasure hunting in AR.",
-      image: "https://images.unsplash.com/photo-1465379944081-7f47de8d74ac?auto=format&fit=crop&w=800&q=80"
+      image: "https://images.unsplash.com/photo-1470813740244-df37b8c1edcb?auto=format&fit=crop&w=800&q=80" // Animated treasure image (blue starry night that looks magical)
     },
     {
       title: "Using the Map",
       content: "Gold dots represent treasures, colored dots represent obstacles. Move closer to interact with them!",
-      image: "https://images.unsplash.com/photo-1472396961693-142e6e269027?auto=format&fit=crop&w=800&q=80"
+      image: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?auto=format&fit=crop&w=800&q=80" // Game map image
     },
     {
       title: "AR Camera Mode",
       content: "Switch to AR mode when near a treasure or obstacle to interact with it in your environment.",
-      image: "https://images.unsplash.com/photo-1493962853295-0fd70327578a?auto=format&fit=crop&w=800&q=80"
+      image: "https://images.unsplash.com/photo-1473091534298-04dcbce3278c?auto=format&fit=crop&w=800&q=80" // AR camera image
     },
     {
       title: "Ready to Begin",
       content: "You're all set! Start exploring and collecting treasures in your area.",
-      image: "https://images.unsplash.com/photo-1439886183900-e79ec0057170?auto=format&fit=crop&w=800&q=80"
+      image: "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?auto=format&fit=crop&w=800&q=80" // Animated treasure hunt image (colorful code visualization)
     }
   ];
 
